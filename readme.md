@@ -35,7 +35,7 @@ OWASP CSRFGuard 3.1 is available on Maven Central.  Add the following dependency
 3. Clone this repository locally;
 4. Build the ```csrfguard``` project first as ```cd csrfguard``` followed by ```mvn clean install```;
 5. Build and run the ```csrfguard-test``` project as ```cd ../csrfguard-test``` followed by ```mvn clean package tomcat7:run```;
-6. Use a web browser to access ```http://localhost``` to open the home page of the test project.
+6. Use a web browser to access ```http://localhost:8000``` to open the home page of the test project.
 
 ## Uploading to the Maven Central repository
 
