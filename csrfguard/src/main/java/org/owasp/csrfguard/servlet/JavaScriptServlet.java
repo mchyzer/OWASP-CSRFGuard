@@ -28,14 +28,24 @@
  */
 package org.owasp.csrfguard.servlet;
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.*;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import org.owasp.csrfguard.CsrfGuard;
+import org.owasp.csrfguard.util.Streams;
+import org.owasp.csrfguard.util.Strings;
+import org.owasp.csrfguard.util.Writers;
 
-import org.owasp.csrfguard.*;
-import org.owasp.csrfguard.util.*;
+import javax.servlet.ServletConfig;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public final class JavaScriptServlet extends HttpServlet {
 
@@ -81,14 +91,18 @@ public final class JavaScriptServlet extends HttpServlet {
 
 	@Override
 	public void init(ServletConfig servletConfig) {
-		sourceFile = getInitParameter(servletConfig, "source-file", "WEB-INF/Owasp.CsrfGuard.js");
+		sourceFile = servletConfig.getInitParameter("source-file");
 		domainStrict = getInitParameter(servletConfig, "domain-strict", "true");
 		cacheControl = getInitParameter(servletConfig, "cache-control", "private, maxage=28800");
 		refererPattern = Pattern.compile(getInitParameter(servletConfig, "referer-pattern", ".*"));
 		injectIntoForms = getInitParameter(servletConfig, "inject-into-forms", "true");
 		injectIntoAttributes = getInitParameter(servletConfig, "inject-into-attributes", "true");
 		xRequestedWith = getInitParameter(servletConfig, "x-requested-with", "OWASP CSRFGuard Project");
-		templateCode = readFileContent(servletConfig.getServletContext().getRealPath(sourceFile));
+            if(sourceFile == null) {
+                templateCode = readResourceFileContent("META-INF/csrfguard.js");
+            } else {
+                templateCode = readFileContent(servletConfig.getServletContext().getRealPath(sourceFile));
+            }
 	}
 
 	@Override
@@ -248,25 +262,46 @@ public final class JavaScriptServlet extends HttpServlet {
 		return value;
 	}
 
-	private String readFileContent(String fileName) {
-		StringBuilder sb = new StringBuilder();
-		InputStream is = null;
+    private String readResourceFileContent(String resourceName) {
+        InputStream is = null;
 
-		try {
-			is = new FileInputStream(fileName);
-			int i = 0;
+        try {
+            is = getClass().getClassLoader().getResourceAsStream(resourceName);
+            if(is == null) {
+                throw new IllegalStateException("Could not find resource " + resourceName);
+            }
+            return readInputStreamContent(is);
+        } finally {
+            Streams.close(is);
+        }
+    }
+    private String readFileContent(String fileName) {
+        InputStream is = null;
 
-			while ((i = is.read()) > 0) {
-				sb.append((char) i);
-			}
-		} catch (IOException ioe) {
-			throw new RuntimeException(ioe);
-		} finally {
-			Streams.close(is);
-		}
+        try {
+            is = new FileInputStream(fileName);
+            return readInputStreamContent(is);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        } finally {
+            Streams.close(is);
+        }
+    }
+    private String readInputStreamContent(InputStream is) {
+        StringBuilder sb = new StringBuilder();
 
-		return sb.toString();
-	}
+        try {
+            int i;
+
+            while ((i = is.read()) > 0) {
+                sb.append((char) i);
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+
+        return sb.toString();
+    }
 
 	private String parseDomain(StringBuffer url) {
 		String token = "://";

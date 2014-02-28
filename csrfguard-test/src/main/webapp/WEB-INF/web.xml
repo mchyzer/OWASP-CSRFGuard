@@ -42,10 +42,6 @@
 		<servlet-name>JavaScriptServlet</servlet-name>
 		<servlet-class>org.owasp.csrfguard.servlet.JavaScriptServlet</servlet-class>
 		<init-param>
-			<param-name>source-file</param-name>
-			<param-value>script/csrfguard.js</param-value>
-		</init-param>
-		<init-param>
 			<param-name>inject-into-forms</param-name>
 			<param-value>true</param-value>
 		</init-param>
