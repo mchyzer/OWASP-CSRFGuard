@@ -149,6 +149,7 @@
 				<directory>src/main/resources</directory>
 				<filtering>true</filtering>
 				<includes>
+          <include>csrfguard.js</include>
 					<include>csrfguard.tld</include>
 					<include>license.txt</include>
 				</includes>
