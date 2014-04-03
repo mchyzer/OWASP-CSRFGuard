@@ -92,7 +92,7 @@ public final class CsrfGuard {
 		CsrfGuard csrfGuard = SingletonHolder.instance;
 
 		/** load simple properties **/
-		csrfGuard.setLogger((ILogger) Class.forName(properties.getProperty("org.owasp.csrfguard.Logger", "org.owasp.csrfguard.log.ConsoleLogger")).newInstance());
+		csrfGuard.setLogger(loadClass(properties.getProperty("org.owasp.csrfguard.Logger", "org.owasp.csrfguard.log.ConsoleLogger"), ILogger.class).newInstance());
 		csrfGuard.setTokenName(properties.getProperty("org.owasp.csrfguard.TokenName", "OWASP_CSRFGUARD"));
 		csrfGuard.setTokenLength(Integer.parseInt(properties.getProperty("org.owasp.csrfguard.TokenLength", "32")));
 		csrfGuard.setRotate(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Rotate", "false")));
@@ -124,7 +124,7 @@ public final class CsrfGuard {
 				/** action name/class **/
 				if (index < 0) {
 					String actionClass = properties.getProperty(key);
-					IAction action = (IAction) Class.forName(actionClass).newInstance();
+					IAction action = loadClass(actionClass, IAction.class).newInstance();
 
 					action.setName(directive);
 					actionsMap.put(action.getName(), action);
@@ -201,7 +201,7 @@ public final class CsrfGuard {
 		}
 	}
 
-	public CsrfGuard() {
+    public CsrfGuard() {
 		actions = new ArrayList<IAction>();
 		protectedPages = new HashSet<String>();
 		unprotectedPages = new HashSet<String>();
@@ -731,6 +731,11 @@ public final class CsrfGuard {
 		}
 
 		return retval;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> Class<? extends T> loadClass(String className, Class<T> iface) throws ClassNotFoundException {
+		return (Class<? extends T>) Class.forName(className, true, CsrfGuard.class.getClassLoader());
 	}
 
 }
