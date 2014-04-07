@@ -85,7 +85,7 @@ public final class CsrfGuard {
 		return config.isTokenPerPageEnabled();
 	}
 	public boolean isTokenPerPagePrecreate() {
-		return config.isTokenPerPageEnabled();
+		return config.isTokenPerPagePrecreateEnabled();
 	}
 
 	public SecureRandom getPrng() {

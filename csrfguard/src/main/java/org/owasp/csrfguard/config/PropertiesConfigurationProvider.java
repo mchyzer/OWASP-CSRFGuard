@@ -222,7 +222,7 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 		return tokenPerPage;
 	}
 
-	public boolean isTokenPerPagePrecreate() {
+	public boolean isTokenPerPagePrecreateEnabled() {
 		return tokenPerPagePrecreate;
 	}
 

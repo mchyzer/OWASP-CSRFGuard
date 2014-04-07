@@ -74,6 +74,11 @@ public final class NullConfigurationProvider implements ConfigurationProvider {
 	}
 
 	@Override
+	public boolean isTokenPerPagePrecreateEnabled() {
+		return false;
+	}
+
+	@Override
 	public SecureRandom getPrng() {
 		return null;
 	}

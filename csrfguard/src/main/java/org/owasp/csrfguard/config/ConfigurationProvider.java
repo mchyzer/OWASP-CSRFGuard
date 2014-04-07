@@ -47,6 +47,8 @@ public interface ConfigurationProvider {
 
 	boolean isTokenPerPageEnabled();
 
+	boolean isTokenPerPagePrecreateEnabled();
+
 	SecureRandom getPrng();
 
 	String getNewTokenLandingPage();
