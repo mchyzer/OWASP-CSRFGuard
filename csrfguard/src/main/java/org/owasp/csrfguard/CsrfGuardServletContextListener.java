@@ -24,9 +24,8 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		ServletContext context = event.getServletContext();
 		String config = context.getInitParameter(CONFIG_PARAM);
 
-
 		if (config == null) {
-			throw new RuntimeException(String.format("failure to specify context init-param - %s", CONFIG_PARAM));
+		  config = "Owasp.CsrfGuard.properties";
 		}
 
 		InputStream is = null;
