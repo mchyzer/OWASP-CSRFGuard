@@ -35,6 +35,7 @@ import java.util.*;
 import javax.servlet.http.*;
 
 import org.owasp.csrfguard.action.*;
+import org.owasp.csrfguard.config.*;
 import org.owasp.csrfguard.log.*;
 import org.owasp.csrfguard.util.*;
 
@@ -42,43 +43,7 @@ public final class CsrfGuard {
 
 	public final static String PAGE_TOKENS_KEY = "Owasp_CsrfGuard_Pages_Tokens_Key";
 
-	private final static String ACTION_PREFIX = "org.owasp.csrfguard.action.";
-
-	private final static String PROTECTED_PAGE_PREFIX = "org.owasp.csrfguard.protected.";
-	
-	private final static String UNPROTECTED_PAGE_PREFIX = "org.owasp.csrfguard.unprotected.";
-
-	private ILogger logger = null;
-
-	private String tokenName = null;
-
-	private int tokenLength = -1;
-
-	private boolean rotate = false;
-
-	private boolean tokenPerPage = false;
-
-	private boolean tokenPerPagePrecreate;
-
-	private SecureRandom prng = null;
-
-	private String newTokenLandingPage = null;
-
-	private boolean useNewTokenLandingPage = false;
-
-	private boolean ajax = false;
-	
-	private boolean protect = false;
-	
-	private String sessionKey = null;
-	
-	private Set<String> protectedPages = null;
-
-	private Set<String> unprotectedPages = null;
-
-	private Set<String> protectedMethods = null;
-
-	private List<IAction> actions = null;
+	private ConfigurationProvider config = new NullConfigurationProvider();
 	
 	private static class SingletonHolder {
 	  public static final CsrfGuard instance = new CsrfGuard();
@@ -89,236 +54,78 @@ public final class CsrfGuard {
 	}
 
 	public static void load(Properties properties) throws NoSuchAlgorithmException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException, NoSuchProviderException {
+		configure(new PropertiesConfigurationProvider(properties));
+	}
+	
+	public static void configure(ConfigurationProvider config) {
 		CsrfGuard csrfGuard = SingletonHolder.instance;
-
-		/** load simple properties **/
-		csrfGuard.setLogger((ILogger) Class.forName(properties.getProperty("org.owasp.csrfguard.Logger", "org.owasp.csrfguard.log.ConsoleLogger")).newInstance());
-		csrfGuard.setTokenName(properties.getProperty("org.owasp.csrfguard.TokenName", "OWASP_CSRFGUARD"));
-		csrfGuard.setTokenLength(Integer.parseInt(properties.getProperty("org.owasp.csrfguard.TokenLength", "32")));
-		csrfGuard.setRotate(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Rotate", "false")));
-		csrfGuard.setTokenPerPage(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.TokenPerPage", "false")));
-		csrfGuard.setTokenPerPagePrecreate(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.TokenPerPagePrecreate", "false")));
-		csrfGuard.setPrng(SecureRandom.getInstance(properties.getProperty("org.owasp.csrfguard.PRNG", "SHA1PRNG"), properties.getProperty("org.owasp.csrfguard.PRNG.Provider", "SUN")));
-		csrfGuard.setNewTokenLandingPage(properties.getProperty("org.owasp.csrfguard.NewTokenLandingPage"));
-
-		//default to false if newTokenLandingPage is not set; default to true if set.
-		if (csrfGuard.getNewTokenLandingPage() == null) {
-			csrfGuard.setUseNewTokenLandingPage(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.UseNewTokenLandingPage", "false")));
-		} else {
-			csrfGuard.setUseNewTokenLandingPage(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.UseNewTokenLandingPage", "true")));
-		}
-		csrfGuard.setSessionKey(properties.getProperty("org.owasp.csrfguard.SessionKey", "OWASP_CSRFGUARD_KEY"));
-		csrfGuard.setAjax(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Ajax", "false")));
-		csrfGuard.setProtect(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Protect", "false")));
-
-		/** first pass: instantiate actions **/
-		Map<String, IAction> actionsMap = new HashMap<String, IAction>();
-
-		for (Object obj : properties.keySet()) {
-			String key = (String) obj;
-
-			if (key.startsWith(ACTION_PREFIX)) {
-				String directive = key.substring(ACTION_PREFIX.length());
-				int index = directive.indexOf('.');
-
-				/** action name/class **/
-				if (index < 0) {
-					String actionClass = properties.getProperty(key);
-					IAction action = (IAction) Class.forName(actionClass).newInstance();
-
-					action.setName(directive);
-					actionsMap.put(action.getName(), action);
-					csrfGuard.getActions().add(action);
-				}
-			}
-		}
-
-		/** second pass: initialize action parameters **/
-		for (Object obj : properties.keySet()) {
-			String key = (String) obj;
-
-			if (key.startsWith(ACTION_PREFIX)) {
-				String directive = key.substring(ACTION_PREFIX.length());
-				int index = directive.indexOf('.');
-
-				/** action name/class **/
-				if (index >= 0) {
-					String actionName = directive.substring(0, index);
-					IAction action = actionsMap.get(actionName);
-
-					if (action == null) {
-						throw new IOException(String.format("action class %s has not yet been specified", actionName));
-					}
-
-					String parameterName = directive.substring(index + 1);
-					String parameterValue = properties.getProperty(key);
-
-					action.setParameter(parameterName, parameterValue);
-				}
-			}
-		}
-
-		/** ensure at least one action was defined **/
-		if (csrfGuard.getActions().size() <= 0) {
-			throw new IOException("failure to define at least one action");
-		}
-
-		/** initialize protected, unprotected pages **/
-		for (Object obj : properties.keySet()) {
-			String key = (String) obj;
-			
-			if (key.startsWith(PROTECTED_PAGE_PREFIX)) {
-				String directive = key.substring(PROTECTED_PAGE_PREFIX.length());
-				int index = directive.indexOf('.');
-
-				/** page name/class **/
-				if (index < 0) {
-					String pageUri = properties.getProperty(key);
-					
-					csrfGuard.getProtectedPages().add(pageUri);
-				}
-			}
-
-			if (key.startsWith(UNPROTECTED_PAGE_PREFIX)) {
-				String directive = key.substring(UNPROTECTED_PAGE_PREFIX.length());
-				int index = directive.indexOf('.');
-
-				/** page name/class **/
-				if (index < 0) {
-					String pageUri = properties.getProperty(key);
-					
-					csrfGuard.getUnprotectedPages().add(pageUri);
-				}
-			}
-		}
-
-		/** initialize protected methods **/
-		String methodList = properties.getProperty("org.owasp.csrfguard.ProtectedMethods");
-		if (methodList != null && methodList.trim().length() != 0) {
-			for (String method : methodList.split(",")) {
-				csrfGuard.getProtectedMethods().add(method.trim());
-			}
-		}
+		csrfGuard.config = config;
 	}
 
 	public CsrfGuard() {
-		actions = new ArrayList<IAction>();
-		protectedPages = new HashSet<String>();
-		unprotectedPages = new HashSet<String>();
-		protectedMethods = new HashSet<String>();
 	}
 
 	public ILogger getLogger() {
-		return logger;
-	}
-
-	private void setLogger(ILogger logger) {
-		this.logger = logger;
+		return config.getLogger();
 	}
 
 	public String getTokenName() {
-		return tokenName;
-	}
-
-	private void setTokenName(String tokenName) {
-		this.tokenName = tokenName;
+		return config.getTokenName();
 	}
 
 	public int getTokenLength() {
-		return tokenLength;
-	}
-
-	private void setTokenLength(int tokenLength) {
-		this.tokenLength = tokenLength;
+		return config.getTokenLength();
 	}
 
 	public boolean isRotateEnabled() {
-		return rotate;
-	}
-
-	private void setRotate(boolean rotate) {
-		this.rotate = rotate;
+		return config.isRotateEnabled();
 	}
 
 	public boolean isTokenPerPageEnabled() {
-		return tokenPerPage;
+		return config.isTokenPerPageEnabled();
 	}
-
-	private void setTokenPerPage(boolean tokenPerPage) {
-		this.tokenPerPage = tokenPerPage;
-	}
-
 	public boolean isTokenPerPagePrecreate() {
-		return tokenPerPagePrecreate;
-	}
-
-	private void setTokenPerPagePrecreate(boolean tokenPerPagePrecreate) {
-		this.tokenPerPagePrecreate = tokenPerPagePrecreate;
+		return config.isTokenPerPagePrecreateEnabled();
 	}
 
 	public SecureRandom getPrng() {
-		return prng;
-	}
-
-	private void setPrng(SecureRandom prng) {
-		this.prng = prng;
+		return config.getPrng();
 	}
 
 	public String getNewTokenLandingPage() {
-		return newTokenLandingPage;
-	}
-
-	private void setNewTokenLandingPage(String newTokenLandingPage) {
-		this.newTokenLandingPage = newTokenLandingPage;
+		return config.getNewTokenLandingPage();
 	}
 
 	public boolean isUseNewTokenLandingPage() {
-		return useNewTokenLandingPage;
-	}
-
-	private void setUseNewTokenLandingPage(boolean useNewTokenLandingPage) {
-		this.useNewTokenLandingPage = useNewTokenLandingPage;
+		return config.isUseNewTokenLandingPage();
 	}
 
 	public boolean isAjaxEnabled() {
-		return ajax;
-	}
-
-	private void setAjax(boolean ajax) {
-		this.ajax = ajax;
+		return config.isAjaxEnabled();
 	}
 
 	public boolean isProtectEnabled() {
-		return protect;
-	}
-
-	public void setProtect(boolean protect) {
-		this.protect = protect;
+		return config.isProtectEnabled();
 	}
 
 	public String getSessionKey() {
-		return sessionKey;
-	}
-
-	private void setSessionKey(String sessionKey) {
-		this.sessionKey = sessionKey;
+		return config.getSessionKey();
 	}
 
 	public Set<String> getProtectedPages() {
-		return protectedPages;
+		return config.getProtectedPages();
 	}
 
 	public Set<String> getUnprotectedPages() {
-		return unprotectedPages;
+		return config.getUnprotectedPages();
 	}
 
 	public Set<String> getProtectedMethods () {
-		return protectedMethods;
+		return config.getProtectedMethods();
 	}
 
-
 	public List<IAction> getActions() {
-		return actions;
+		return config.getActions();
 	}
 
 	public String getTokenValue(HttpServletRequest request) {
@@ -539,7 +346,7 @@ public final class CsrfGuard {
 		sb.append(String.format("* Rotate: %s\r\n", isRotateEnabled()));
 		sb.append(String.format("* TokenPerPage: %s\r\n", isTokenPerPageEnabled()));
 
-		for (IAction action : actions) {
+		for (IAction action : getActions()) {
 			sb.append(String.format("* Action: %s\r\n", action.getClass().getName()));
 
 			for (String name : action.getParameterMap().keySet()) {
@@ -638,7 +445,7 @@ public final class CsrfGuard {
 	public boolean isProtectedPage(String uri) {
 		boolean retval = !isProtectEnabled();
 
-		for (String protectedPage : protectedPages) {
+		for (String protectedPage : getProtectedPages()) {
 			if (isUriExactMatch(protectedPage, uri)) {
 				return true;
 			} else if (isUriMatch(protectedPage, uri)) {
@@ -646,7 +453,7 @@ public final class CsrfGuard {
 			}
 		}
 
-		for (String unprotectedPage : unprotectedPages) {
+		for (String unprotectedPage : getUnprotectedPages()) {
 			if (isUriExactMatch(unprotectedPage, uri)) {
 				return false;
 			} else if (isUriMatch(unprotectedPage, uri)) {
@@ -660,7 +467,7 @@ public final class CsrfGuard {
 	public boolean isProtectedMethod(String method) {
 		boolean retval = false;
 
-		if (protectedMethods.isEmpty() || protectedMethods.contains(method)) {
+		if (getProtectedMethods().isEmpty() || getProtectedMethods().contains(method)) {
 				retval = true;
 		}
 
