@@ -67,6 +67,8 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 
 	private final boolean tokenPerPagePrecreate;
 
+	private final boolean printConfig;
+	
 	private final SecureRandom prng;
 
 	private final String newTokenLandingPage;
@@ -102,6 +104,8 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 		prng = SecureRandom.getInstance(properties.getProperty("org.owasp.csrfguard.PRNG", "SHA1PRNG"), properties.getProperty("org.owasp.csrfguard.PRNG.Provider", "SUN"));
 		newTokenLandingPage = properties.getProperty("org.owasp.csrfguard.NewTokenLandingPage");
 
+		printConfig = Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Config.Print", "false"));
+		
 		//default to false if newTokenLandingPage is not set; default to true if set.
 		if (newTokenLandingPage == null) {
 			useNewTokenLandingPage = Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.UseNewTokenLandingPage", "false"));
@@ -264,6 +268,13 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 
 	public List<IAction> getActions() {
 		return actions;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isPrintConfig()
+	 */
+	public boolean isPrintConfig() {
+		return this.printConfig;
 	}
 
 }

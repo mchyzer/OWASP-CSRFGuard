@@ -128,4 +128,12 @@ public final class NullConfigurationProvider implements ConfigurationProvider {
 		return Collections.emptyList();
 	}
 
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isPrintConfig()
+	 */
+	@Override
+	public boolean isPrintConfig() {
+		return false;
+	}
+
 }

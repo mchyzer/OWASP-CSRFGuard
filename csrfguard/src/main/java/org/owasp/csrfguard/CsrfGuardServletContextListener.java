@@ -44,6 +44,10 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 
 		String printConfig = context.getInitParameter(CONFIG_PRINT_PARAM);
 
+		if (printConfig == null || "".equals(printConfig.trim())) {
+			printConfig = CsrfGuard.getInstance().isPrintConfig() ? "true" : null;
+		}
+		
 		if (printConfig != null && Boolean.parseBoolean(printConfig)) {
 			context.log(CsrfGuard.getInstance().toString());
 		}

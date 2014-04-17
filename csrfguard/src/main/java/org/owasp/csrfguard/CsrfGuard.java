@@ -482,6 +482,10 @@ public final class CsrfGuard {
 		return isProtectedPageAndMethod(request.getRequestURI(), request.getMethod());
 	}
 	
+	public boolean isPrintConfig() {
+		return config.isPrintConfig();
+	}
+	
 	/**
 	 * FIXME: taken from Tomcat - ApplicationFilterFactory
 	 * 

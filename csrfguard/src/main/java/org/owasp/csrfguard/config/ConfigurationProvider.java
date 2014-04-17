@@ -37,6 +37,8 @@ import org.owasp.csrfguard.log.ILogger;
 
 public interface ConfigurationProvider {
 
+	boolean isPrintConfig();
+	
 	ILogger getLogger();
 
 	String getTokenName();
