@@ -31,12 +31,16 @@ package org.owasp.csrfguard.config;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.owasp.csrfguard.action.IAction;
 import org.owasp.csrfguard.log.ILogger;
 
 public interface ConfigurationProvider {
 
+	/** if this configuration provider can be cached for a minute, i.e. it is all setup */
+	boolean isCacheable();
+	
 	boolean isPrintConfig();
 	
 	ILogger getLogger();
@@ -69,6 +73,34 @@ public interface ConfigurationProvider {
 
 	Set<String> getProtectedMethods();
 
+	/**
+	 * if there are methods here, then all other HTTP methods are protected and these (e.g. GET) are unprotected
+	 * @return the unprotected methods
+	 */
+	Set<String> getUnprotectedMethods();
+
 	List<IAction> getActions();
+	
+	String getJavascriptSourceFile();
+
+	boolean isJavascriptDomainStrict();
+
+	String getJavascriptCacheControl();
+
+	Pattern getJavascriptRefererPattern();
+
+	boolean isJavascriptInjectIntoForms();
+
+	/**
+	 * if the referer to te javascript must match domain
+	 * @return true if the javascrript must match domain
+	 */
+	boolean isJavascriptRefererMatchDomain();
+
+	boolean isJavascriptInjectIntoAttributes();
+
+	String getJavascriptXrequestedWith();
+
+	String getJavascriptTemplateCode();
 
 }

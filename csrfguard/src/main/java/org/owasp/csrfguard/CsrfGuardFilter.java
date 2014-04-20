@@ -57,7 +57,6 @@ public final class CsrfGuardFilter implements Filter {
 		if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
 			HttpServletRequest httpRequest = (HttpServletRequest) request;
 			HttpSession session = httpRequest.getSession(false);
-			
 			if (session == null) {
 				// If there is no session, no harm can be done
 				filterChain.doFilter(httpRequest, (HttpServletResponse) response);
