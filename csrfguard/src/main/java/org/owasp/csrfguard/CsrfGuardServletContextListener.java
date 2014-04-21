@@ -83,6 +83,14 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		}
 
 
+		printConfigIfConfigured(context, "Printing properties before Javascript servlet, note, the javascript properties might not be initialized yet: ");
+	}
+
+	/**
+	 * @param context
+	 * @param prefix 
+	 */
+	public static void printConfigIfConfigured(ServletContext context, String prefix) {
 		String printConfig = context.getInitParameter(CONFIG_PRINT_PARAM);
 
 		if (printConfig == null || "".equals(printConfig.trim())) {
@@ -90,7 +98,8 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		}
 		
 		if (printConfig != null && Boolean.parseBoolean(printConfig)) {
-			context.log(CsrfGuard.getInstance().toString());
+			context.log(prefix 
+					+ CsrfGuard.getInstance().toString());
 		}
 	}
 

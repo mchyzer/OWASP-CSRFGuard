@@ -153,6 +153,17 @@ public final class CsrfGuard {
 		return config().isTokenPerPagePrecreateEnabled();
 	}
 
+	/**
+	 * If csrf guard filter should check even if there is no session for the user
+	 * Note: this changed in 2014/04/20, the default behavior used to be to 
+	 * not check if there is no session.  If you want the legacy behavior (if your app
+	 * is not susceptible to CSRF if the user has no session), set this to false
+	 * @return if true
+	 */
+	public boolean isValidateWhenNoSessionExists() {
+		return config().isValidateWhenNoSessionExists();
+	}
+	
 	public SecureRandom getPrng() {
 		return config().getPrng();
 	}
@@ -173,6 +184,14 @@ public final class CsrfGuard {
 		return config().isProtectEnabled();
 	}
 
+	/**
+	 * @see ConfigurationProvider#isEnabled()
+	 * @return if enabled
+	 */
+	public boolean isEnabled() {
+		return config().isEnabled();
+	}
+	
 	public String getSessionKey() {
 		return config().getSessionKey();
 	}
@@ -450,8 +469,22 @@ public final class CsrfGuard {
 		sb.append(String.format("* TokenName: %s\r\n", getTokenName()));
 		sb.append(String.format("* Ajax: %s\r\n", isAjaxEnabled()));
 		sb.append(String.format("* Rotate: %s\r\n", isRotateEnabled()));
+		sb.append(String.format("* Javascript cache control: %s\r\n", getJavascriptCacheControl()));
+		sb.append(String.format("* Javascript domain strict: %s\r\n", isJavascriptDomainStrict()));
+		sb.append(String.format("* Javascript inject attributes: %s\r\n", isJavascriptInjectIntoAttributes()));
+		sb.append(String.format("* Javascript inject forms: %s\r\n", isJavascriptInjectIntoForms()));
+		sb.append(String.format("* Javascript referer pattern: %s\r\n", getJavascriptRefererPattern()));
+		sb.append(String.format("* Javascript referer match domain: %s\r\n", isJavascriptRefererMatchDomain()));
+		sb.append(String.format("* Javascript source file: %s\r\n", getJavascriptSourceFile()));
+		sb.append(String.format("* Javascript X requested with: %s\r\n", getJavascriptXrequestedWith()));
+		sb.append(String.format("* Protected methods: %s\r\n", CsrfGuardUtils.toStringForLog(getProtectedMethods())));
+		sb.append(String.format("* Protected pages size: %s\r\n", CsrfGuardUtils.length(getProtectedPages())));
+		sb.append(String.format("* Unprotected methods: %s\r\n", CsrfGuardUtils.toStringForLog(getUnprotectedMethods())));
+		sb.append(String.format("* Unprotected pages size: %s\r\n", CsrfGuardUtils.length(getUnprotectedPages())));
 		sb.append(String.format("* TokenPerPage: %s\r\n", isTokenPerPageEnabled()));
-
+		sb.append(String.format("* Enabled: %s\r\n", isEnabled()));
+		sb.append(String.format("* ValidateWhenNoSessionExists: %s\r\n", isValidateWhenNoSessionExists()));
+		
 		for (IAction action : getActions()) {
 			sb.append(String.format("* Action: %s\r\n", action.getClass().getName()));
 

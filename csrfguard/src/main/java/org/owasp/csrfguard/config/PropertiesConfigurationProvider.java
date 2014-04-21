@@ -43,6 +43,7 @@ import javax.servlet.ServletConfig;
 
 import org.owasp.csrfguard.CsrfGuardServletContextListener;
 import org.owasp.csrfguard.action.IAction;
+import org.owasp.csrfguard.config.overlay.ConfigurationOverlayProvider;
 import org.owasp.csrfguard.log.ILogger;
 import org.owasp.csrfguard.servlet.JavaScriptServlet;
 import org.owasp.csrfguard.util.CsrfGuardUtils;
@@ -67,6 +68,8 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 
 	private final boolean rotate;
 
+	private final boolean enabled;
+	
 	private final boolean tokenPerPage;
 
 	private final boolean tokenPerPagePrecreate;
@@ -111,11 +114,16 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 			tokenLength = Integer.parseInt(propertyString(properties, "org.owasp.csrfguard.TokenLength", "32"));
 			rotate = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.Rotate", "false"));
 			tokenPerPage = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.TokenPerPage", "false"));
+
+			this.validationWhenNoSessionExists = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.ValidateWhenNoSessionExists", "true"));
+			
 			tokenPerPagePrecreate = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.TokenPerPagePrecreate", "false"));
 			prng = SecureRandom.getInstance(propertyString(properties, "org.owasp.csrfguard.PRNG", "SHA1PRNG"), propertyString(properties, "org.owasp.csrfguard.PRNG.Provider", "SUN"));
 			newTokenLandingPage = propertyString(properties, "org.owasp.csrfguard.NewTokenLandingPage");
 	
 			printConfig = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.Config.Print", "false"));
+
+			this.enabled = Boolean.valueOf(propertyString(properties, "org.owasp.csrfguard.Enabled", "true"));
 			
 			//default to false if newTokenLandingPage is not set; default to true if set.
 			if (newTokenLandingPage == null) {
@@ -257,9 +265,16 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 				this.javascriptXrequestedWith = CsrfGuardUtils.getInitParameter(servletConfig, "x-requested-with",  
 						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.xRequestedWith"), "OWASP CSRFGuard Project");
 	            if(this.javascriptSourceFile == null) {
-	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent("META-INF/csrfguard.js");
+	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(ConfigurationOverlayProvider.OWASP_CSRF_GUARD_PROPERTIES, false);
+	                if (this.javascriptTemplateCode == null) {
+	                	this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(ConfigurationOverlayProvider.META_INF_CSRFGUARD_PROPERTIES, false);
+	                }
+	                if (this.javascriptTemplateCode == null) {
+	                	throw new RuntimeException("Cannot find resource from classpath: " + ConfigurationOverlayProvider.OWASP_CSRF_GUARD_PROPERTIES 
+	                			+ " or " + ConfigurationOverlayProvider.META_INF_CSRFGUARD_PROPERTIES);
+	                }
 	            } else if (this.javascriptSourceFile.startsWith("META-INF/")) {
-	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(this.javascriptSourceFile);
+	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(this.javascriptSourceFile, true);
 	            } else {
 	            	this.javascriptTemplateCode = CsrfGuardUtils.readFileContent(
 	            			servletConfig.getServletContext().getRealPath(this.javascriptSourceFile));
@@ -310,6 +325,22 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 		return rotate;
 	}
 
+	/**
+	 * @see ConfigurationProvider#isValidateWhenNoSessionExists()
+	 */
+	@Override
+	public boolean isValidateWhenNoSessionExists() {
+		return this.validationWhenNoSessionExists;
+	}
+
+	/**
+	 * If csrf guard filter should check even if there is no session for the user
+	 * Note: this changed in 2014/04, the default behavior used to be to 
+	 * not check if there is no session.  If you want the legacy behavior (if your app
+	 * is not susceptible to CSRF if the user has no session), set this to false
+	 */
+	private final boolean validationWhenNoSessionExists;
+	
 	public boolean isTokenPerPageEnabled() {
 		return tokenPerPage;
 	}
@@ -498,6 +529,14 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 		}
 		input = input.replace("%servletContext%", CsrfGuardServletContextListener.getServletContext());
 		return input;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isEnabled()
+	 */
+	@Override
+	public boolean isEnabled() {
+		return this.enabled;
 	}
 
 }

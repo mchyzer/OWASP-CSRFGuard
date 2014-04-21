@@ -223,4 +223,20 @@ public final class NullConfigurationProvider implements ConfigurationProvider {
 		return false;
 	}
 
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isEnabled()
+	 */
+	@Override
+	public boolean isEnabled() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isValidateWhenNoSessionExists()
+	 */
+	@Override
+	public boolean isValidateWhenNoSessionExists() {
+		return false;
+	}
+
 }

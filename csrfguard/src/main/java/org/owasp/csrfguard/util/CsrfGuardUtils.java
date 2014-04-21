@@ -32,7 +32,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
@@ -42,10 +44,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletConfig;
@@ -228,13 +232,17 @@ public class CsrfGuardUtils {
 		return value;
 	}
 
-	public static String readResourceFileContent(String resourceName) {
+	public static String readResourceFileContent(String resourceName, boolean errorIfNotFound) {
 		InputStream is = null;
 
 		try {
 			is = CsrfGuardUtils.class.getClassLoader().getResourceAsStream(resourceName);
 			if(is == null) {
-				throw new IllegalStateException("Could not find resource " + resourceName);
+				if (errorIfNotFound) {
+					throw new IllegalStateException("Could not find resource " + resourceName);
+				}
+				//not error if not found?  then null
+				return null;
 			}
 			return readInputStreamContent(is);
 		} finally {
@@ -249,7 +257,7 @@ public class CsrfGuardUtils {
 			return readInputStreamContent(is);
 		} catch (IOException ioe) {
 			throw new RuntimeException(ioe);
-		} finally {
+		} finally {	
 			Streams.close(is);
 		}
 	}
@@ -909,5 +917,474 @@ public class CsrfGuardUtils {
 			}
 		}
 	}
+
+	/**
+	 * print out various types of objects
+	 *
+	 * @param object
+	 * @return the string value
+	 */
+	public static String toStringForLog(Object object) {
+	  StringBuilder result = new StringBuilder();
+	  toStringForLogHelper(object, -1, result);
+	  return result.toString();
+	}
+
+	/**
+	 * print out various types of objects
+	 *
+	 * @param object
+	 * @param maxChars is the max chars that should be returned (abbreviate if longer), or -1 for any amount
+	 * @return the string value
+	 */
+	public static String toStringForLog(Object object, int maxChars) {
+	  StringBuilder result = new StringBuilder();
+	  toStringForLogHelper(object, -1, result);
+	  String resultString = result.toString();
+	  if (maxChars != -1) {
+	    return abbreviate(resultString, maxChars);
+	  }
+	  return resultString;
+	}
+
+	/**
+	 * print out various types of objects
+	 *
+	 * @param object
+	 * @param maxChars is where it should stop when figuring out object.  note, result might be longer than max...
+	 * need to abbreviate when back
+	 * @param result is where to append to
+	 */
+	private static void toStringForLogHelper(Object object, int maxChars, StringBuilder result) {
+	
+	  try {
+	    if (object == null) {
+	      result.append("null");
+	    } else if (object.getClass().isArray()) {
+	      // handle arrays
+	      int length = Array.getLength(object);
+	      if (length == 0) {
+	        result.append("Empty array");
+	      } else {
+	        result.append("Array size: ").append(length).append(": ");
+	        for (int i = 0; i < length; i++) {
+	          result.append("[").append(i).append("]: ").append(
+	              toStringForLog(Array.get(object, i), maxChars)).append("\n");
+	          if (maxChars != -1 && result.length() > maxChars) {
+	            return;
+	          }
+	        }
+	      }
+	    } else if (object instanceof Collection) {
+	      //give size and type if collection
+	      Collection<Object> collection = (Collection<Object>) object;
+	      int collectionSize = collection.size();
+	      if (collectionSize == 0) {
+	        result.append("Empty ").append(object.getClass().getSimpleName());
+	      } else {
+	        result.append(object.getClass().getSimpleName()).append(" size: ").append(collectionSize).append(": ");
+	        int i=0;
+	        for (Object collectionObject : collection) {
+	          result.append("[").append(i).append("]: ").append(
+	              toStringForLog(collectionObject, maxChars)).append("\n");
+	          if (maxChars != -1 && result.length() > maxChars) {
+	            return;
+	          }
+	          i++;
+	        }
+	      }
+	    } else {
+	      result.append(object.toString());
+	    }
+	  } catch (Exception e) {
+	    result.append("<<exception>> ").append(object.getClass()).append(":\n")
+	      .append(getFullStackTrace(e)).append("\n");
+	  }
+	}
+
+	/**
+	 * <p>Abbreviates a String using ellipses. This will turn
+	 * "Now is the time for all good men" into "Now is the time for..."</p>
+	 *
+	 * <p>Specifically:
+	 * <ul>
+	 *   <li>If <code>str</code> is less than <code>maxWidth</code> characters
+	 *       long, return it.</li>
+	 *   <li>Else abbreviate it to <code>(substring(str, 0, max-3) + "...")</code>.</li>
+	 *   <li>If <code>maxWidth</code> is less than <code>4</code>, throw an
+	 *       <code>IllegalArgumentException</code>.</li>
+	 *   <li>In no case will it return a String of length greater than
+	 *       <code>maxWidth</code>.</li>
+	 * </ul>
+	 * </p>
+	 *
+	 * <pre>
+	 * StringUtils.abbreviate(null, *)      = null
+	 * StringUtils.abbreviate("", 4)        = ""
+	 * StringUtils.abbreviate("abcdefg", 6) = "abc..."
+	 * StringUtils.abbreviate("abcdefg", 7) = "abcdefg"
+	 * StringUtils.abbreviate("abcdefg", 8) = "abcdefg"
+	 * StringUtils.abbreviate("abcdefg", 4) = "a..."
+	 * StringUtils.abbreviate("abcdefg", 3) = IllegalArgumentException
+	 * </pre>
+	 *
+	 * @param str  the String to check, may be null
+	 * @param maxWidth  maximum length of result String, must be at least 4
+	 * @return abbreviated String, <code>null</code> if null String input
+	 * @throws IllegalArgumentException if the width is too small
+	 * @since 2.0
+	 */
+	public static String abbreviate(String str, int maxWidth) {
+	  return abbreviate(str, 0, maxWidth);
+	}
+
+	/**
+	 * <p>Abbreviates a String using ellipses. This will turn
+	 * "Now is the time for all good men" into "...is the time for..."</p>
+	 *
+	 * <p>Works like <code>abbreviate(String, int)</code>, but allows you to specify
+	 * a "left edge" offset.  Note that this left edge is not necessarily going to
+	 * be the leftmost character in the result, or the first character following the
+	 * ellipses, but it will appear somewhere in the result.
+	 *
+	 * <p>In no case will it return a String of length greater than
+	 * <code>maxWidth</code>.</p>
+	 *
+	 * <pre>
+	 * StringUtils.abbreviate(null, *, *)                = null
+	 * StringUtils.abbreviate("", 0, 4)                  = ""
+	 * StringUtils.abbreviate("abcdefghijklmno", -1, 10) = "abcdefg..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 0, 10)  = "abcdefg..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 1, 10)  = "abcdefg..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 4, 10)  = "abcdefg..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 5, 10)  = "...fghi..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 6, 10)  = "...ghij..."
+	 * StringUtils.abbreviate("abcdefghijklmno", 8, 10)  = "...ijklmno"
+	 * StringUtils.abbreviate("abcdefghijklmno", 10, 10) = "...ijklmno"
+	 * StringUtils.abbreviate("abcdefghijklmno", 12, 10) = "...ijklmno"
+	 * StringUtils.abbreviate("abcdefghij", 0, 3)        = IllegalArgumentException
+	 * StringUtils.abbreviate("abcdefghij", 5, 6)        = IllegalArgumentException
+	 * </pre>
+	 *
+	 * @param str  the String to check, may be null
+	 * @param offset  left edge of source String
+	 * @param maxWidth  maximum length of result String, must be at least 4
+	 * @return abbreviated String, <code>null</code> if null String input
+	 * @throws IllegalArgumentException if the width is too small
+	 * @since 2.0
+	 */
+	public static String abbreviate(String str, int offset, int maxWidth) {
+	  if (str == null) {
+	    return null;
+	  }
+	  if (maxWidth < 4) {
+	    throw new IllegalArgumentException("Minimum abbreviation width is 4");
+	  }
+	  if (str.length() <= maxWidth) {
+	    return str;
+	  }
+	  if (offset > str.length()) {
+	    offset = str.length();
+	  }
+	  if ((str.length() - offset) < (maxWidth - 3)) {
+	    offset = str.length() - (maxWidth - 3);
+	  }
+	  if (offset <= 4) {
+	    return str.substring(0, maxWidth - 3) + "...";
+	  }
+	  if (maxWidth < 7) {
+	    throw new IllegalArgumentException("Minimum abbreviation width with offset is 7");
+	  }
+	  if ((offset + (maxWidth - 3)) < str.length()) {
+	    return "..." + abbreviate(str.substring(offset), maxWidth - 3);
+	  }
+	  return "..." + str.substring(str.length() - (maxWidth - 3));
+	}
+
+	/**
+	 * <p>A way to get the entire nested stack-trace of an throwable.</p>
+	 *
+	 * @param throwable  the <code>Throwable</code> to be examined
+	 * @return the nested stack trace, with the root cause first
+	 * @since 2.0
+	 */
+	public static String getFullStackTrace(Throwable throwable) {
+	    StringWriter sw = new StringWriter();
+	    PrintWriter pw = new PrintWriter(sw, true);
+	    Throwable[] ts = getThrowables(throwable);
+	    for (int i = 0; i < ts.length; i++) {
+	        ts[i].printStackTrace(pw);
+	        if (isNestedThrowable(ts[i])) {
+	            break;
+	        }
+	    }
+	    return sw.getBuffer().toString();
+	}
+
+	/**
+	 * <p>Returns the list of <code>Throwable</code> objects in the
+	 * exception chain.</p>
+	 *
+	 * <p>A throwable without cause will return an array containing
+	 * one element - the input throwable.
+	 * A throwable with one cause will return an array containing
+	 * two elements. - the input throwable and the cause throwable.
+	 * A <code>null</code> throwable will return an array size zero.</p>
+	 *
+	 * @param throwable  the throwable to inspect, may be null
+	 * @return the array of throwables, never null
+	 */
+	public static Throwable[] getThrowables(Throwable throwable) {
+	    List list = new ArrayList();
+	    while (throwable != null) {
+	        list.add(throwable);
+	        throwable = getCause(throwable);
+	    }
+	    return (Throwable[]) list.toArray(new Throwable[list.size()]);
+	}
+
+	/**
+	 * <p>Checks whether this <code>Throwable</code> class can store a cause.</p>
+	 *
+	 * <p>This method does <b>not</b> check whether it actually does store a cause.<p>
+	 *
+	 * @param throwable  the <code>Throwable</code> to examine, may be null
+	 * @return boolean <code>true</code> if nested otherwise <code>false</code>
+	 * @since 2.0
+	 */
+	public static boolean isNestedThrowable(Throwable throwable) {
+	    if (throwable == null) {
+	        return false;
+	    }
+	
+	    if (throwable instanceof SQLException) {
+	        return true;
+	    } else if (throwable instanceof InvocationTargetException) {
+	        return true;
+	    } else if (isThrowableNested()) {
+	        return true;
+	    }
+	
+	    Class cls = throwable.getClass();
+	    for (int i = 0, isize = CAUSE_METHOD_NAMES.length; i < isize; i++) {
+	        try {
+	            Method method = cls.getMethod(CAUSE_METHOD_NAMES[i], (Class[])null);
+	            if (method != null && Throwable.class.isAssignableFrom(method.getReturnType())) {
+	                return true;
+	            }
+	        } catch (NoSuchMethodException ignored) {
+	        } catch (SecurityException ignored) {
+	        }
+	    }
+	
+	    try {
+	        Field field = cls.getField("detail");
+	        if (field != null) {
+	            return true;
+	        }
+	    } catch (NoSuchFieldException ignored) {
+	    } catch (SecurityException ignored) {
+	    }
+	
+	    return false;
+	}
+
+	/**
+	 * <p>The names of methods commonly used to access a wrapped exception.</p>
+	 */
+	private static String[] CAUSE_METHOD_NAMES = {
+	    "getCause",
+	    "getNextException",
+	    "getTargetException",
+	    "getException",
+	    "getSourceException",
+	    "getRootCause",
+	    "getCausedByException",
+	    "getNested",
+	    "getLinkedException",
+	    "getNestedException",
+	    "getLinkedCause",
+	    "getThrowable",
+	};
+
+	/**
+	 * <p>Introspects the <code>Throwable</code> to obtain the cause.</p>
+	 *
+	 * <p>The method searches for methods with specific names that return a
+	 * <code>Throwable</code> object. This will pick up most wrapping exceptions,
+	 * including those from JDK 1.4, and
+	 * {@link org.apache.commons.lang.exception.NestableException NestableException}.</p>
+	 *
+	 * <p>The default list searched for are:</p>
+	 * <ul>
+	 *  <li><code>getCause()</code></li>
+	 *  <li><code>getNextException()</code></li>
+	 *  <li><code>getTargetException()</code></li>
+	 *  <li><code>getException()</code></li>
+	 *  <li><code>getSourceException()</code></li>
+	 *  <li><code>getRootCause()</code></li>
+	 *  <li><code>getCausedByException()</code></li>
+	 *  <li><code>getNested()</code></li>
+	 * </ul>
+	 *
+	 * <p>In the absence of any such method, the object is inspected for a
+	 * <code>detail</code> field assignable to a <code>Throwable</code>.</p>
+	 *
+	 * <p>If none of the above is found, returns <code>null</code>.</p>
+	 *
+	 * @param throwable  the throwable to introspect for a cause, may be null
+	 * @return the cause of the <code>Throwable</code>,
+	 *  <code>null</code> if none found or null throwable input
+	 * @since 1.0
+	 */
+	public static Throwable getCause(Throwable throwable) {
+	    return getCause(throwable, CAUSE_METHOD_NAMES);
+	}
+
+	/**
+	 * <p>Introspects the <code>Throwable</code> to obtain the cause.</p>
+	 *
+	 * <ol>
+	 * <li>Try known exception types.</li>
+	 * <li>Try the supplied array of method names.</li>
+	 * <li>Try the field 'detail'.</li>
+	 * </ol>
+	 *
+	 * <p>A <code>null</code> set of method names means use the default set.
+	 * A <code>null</code> in the set of method names will be ignored.</p>
+	 *
+	 * @param throwable  the throwable to introspect for a cause, may be null
+	 * @param methodNames  the method names, null treated as default set
+	 * @return the cause of the <code>Throwable</code>,
+	 *  <code>null</code> if none found or null throwable input
+	 * @since 1.0
+	 */
+	public static Throwable getCause(Throwable throwable, String[] methodNames) {
+	    if (throwable == null) {
+	        return null;
+	    }
+	    Throwable cause = getCauseUsingWellKnownTypes(throwable);
+	    if (cause == null) {
+	        if (methodNames == null) {
+	            methodNames = CAUSE_METHOD_NAMES;
+	        }
+	        for (int i = 0; i < methodNames.length; i++) {
+	            String methodName = methodNames[i];
+	            if (methodName != null) {
+	                cause = getCauseUsingMethodName(throwable, methodName);
+	                if (cause != null) {
+	                    break;
+	                }
+	            }
+	        }
+	
+	        if (cause == null) {
+	            cause = getCauseUsingFieldName(throwable, "detail");
+	        }
+	    }
+	    return cause;
+	}
+
+	/**
+	 * <p>Finds a <code>Throwable</code> by field name.</p>
+	 *
+	 * @param throwable  the exception to examine
+	 * @param fieldName  the name of the attribute to examine
+	 * @return the wrapped exception, or <code>null</code> if not found
+	 */
+	private static Throwable getCauseUsingFieldName(Throwable throwable, String fieldName) {
+	    Field field = null;
+	    try {
+	        field = throwable.getClass().getField(fieldName);
+	    } catch (NoSuchFieldException ignored) {
+	    } catch (SecurityException ignored) {
+	    }
+	
+	    if (field != null && Throwable.class.isAssignableFrom(field.getType())) {
+	        try {
+	            return (Throwable) field.get(throwable);
+	        } catch (IllegalAccessException ignored) {
+	        } catch (IllegalArgumentException ignored) {
+	        }
+	    }
+	    return null;
+	}
+
+	/**
+	 * <p>Finds a <code>Throwable</code> by method name.</p>
+	 *
+	 * @param throwable  the exception to examine
+	 * @param methodName  the name of the method to find and invoke
+	 * @return the wrapped exception, or <code>null</code> if not found
+	 */
+	private static Throwable getCauseUsingMethodName(Throwable throwable, String methodName) {
+	    Method method = null;
+	    try {
+	        method = throwable.getClass().getMethod(methodName, (Class[])null);
+	    } catch (NoSuchMethodException ignored) {
+	    } catch (SecurityException ignored) {
+	    }
+	
+	    if (method != null && Throwable.class.isAssignableFrom(method.getReturnType())) {
+	        try {
+	            return (Throwable) method.invoke(throwable, EMPTY_OBJECT_ARRAY);
+	        } catch (IllegalAccessException ignored) {
+	        } catch (IllegalArgumentException ignored) {
+	        } catch (InvocationTargetException ignored) {
+	        }
+	    }
+	    return null;
+	}
+
+	/**
+	 * <p>Finds a <code>Throwable</code> for known types.</p>
+	 *
+	 * <p>Uses <code>instanceof</code> checks to examine the exception,
+	 * looking for well known types which could contain chained or
+	 * wrapped exceptions.</p>
+	 *
+	 * @param throwable  the exception to examine
+	 * @return the wrapped exception, or <code>null</code> if not found
+	 */
+	private static Throwable getCauseUsingWellKnownTypes(Throwable throwable) {
+		if (throwable instanceof SQLException) {
+	        return ((SQLException) throwable).getNextException();
+	    } else if (throwable instanceof InvocationTargetException) {
+	        return ((InvocationTargetException) throwable).getTargetException();
+	    } else {
+	        return null;
+	    }
+	}
+
+	/**
+	 * <p>The Method object for JDK1.4 getCause.</p>
+	 */
+	private static final Method THROWABLE_CAUSE_METHOD;
+	static {
+	  Method getCauseMethod;
+	  try {
+	      getCauseMethod = Throwable.class.getMethod("getCause", (Class[])null);
+	  } catch (Exception e) {
+	      getCauseMethod = null;
+	  }
+	  THROWABLE_CAUSE_METHOD = getCauseMethod;
+	}
+
+	/**
+	 * <p>Checks if the Throwable class has a <code>getCause</code> method.</p>
+	 *
+	 * <p>This is true for JDK 1.4 and above.</p>
+	 *
+	 * @return true if Throwable is nestable
+	 * @since 2.0
+	 */
+	public static boolean isThrowableNested() {
+	    return THROWABLE_CAUSE_METHOD != null;
+	}
+
+	/**
+	 * An empty immutable <code>Object</code> array.
+	 */
+	public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
 }

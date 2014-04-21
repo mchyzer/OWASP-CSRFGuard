@@ -44,6 +44,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.owasp.csrfguard.CsrfGuard;
+import org.owasp.csrfguard.CsrfGuardServletContextListener;
 import org.owasp.csrfguard.log.LogLevel;
 import org.owasp.csrfguard.util.CsrfGuardUtils;
 import org.owasp.csrfguard.util.Streams;
@@ -85,6 +86,9 @@ public final class JavaScriptServlet extends HttpServlet {
 	@Override
 	public void init(ServletConfig theServletConfig) {
 	  servletConfig = theServletConfig;
+	  //print again since it might change based on servlet config of javascript servlet
+	  CsrfGuardServletContextListener.printConfigIfConfigured(servletConfig.getServletContext(), 
+			  "Printing properties after Javascript servlet, note, the javascript properties have now been initialized: ");
 	}
 
 	@Override

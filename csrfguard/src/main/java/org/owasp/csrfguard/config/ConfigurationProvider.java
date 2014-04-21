@@ -47,6 +47,15 @@ public interface ConfigurationProvider {
 
 	String getTokenName();
 
+	/**
+	 * If csrf guard filter should check even if there is no session for the user
+	 * Note: this changed around 2014/04, the default behavior used to be to 
+	 * not check if there is no session.  If you want the legacy behavior (if your app
+	 * is not susceptible to CSRF if the user has no session), set this to false
+	 * @return if true
+	 */
+	public boolean isValidateWhenNoSessionExists();
+	
 	int getTokenLength();
 
 	boolean isRotateEnabled();
@@ -79,6 +88,12 @@ public interface ConfigurationProvider {
 	 */
 	Set<String> getUnprotectedMethods();
 
+	/**
+	 * if the filter is enabled
+	 * @return is csrf guard filter is enabled
+	 */
+	boolean isEnabled();
+	
 	List<IAction> getActions();
 	
 	String getJavascriptSourceFile();
