@@ -265,14 +265,7 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 				this.javascriptXrequestedWith = CsrfGuardUtils.getInitParameter(servletConfig, "x-requested-with",  
 						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.xRequestedWith"), "OWASP CSRFGuard Project");
 	            if(this.javascriptSourceFile == null) {
-	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(ConfigurationOverlayProvider.OWASP_CSRF_GUARD_PROPERTIES, false);
-	                if (this.javascriptTemplateCode == null) {
-	                	this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(ConfigurationOverlayProvider.META_INF_CSRFGUARD_PROPERTIES, false);
-	                }
-	                if (this.javascriptTemplateCode == null) {
-	                	throw new RuntimeException("Cannot find resource from classpath: " + ConfigurationOverlayProvider.OWASP_CSRF_GUARD_PROPERTIES 
-	                			+ " or " + ConfigurationOverlayProvider.META_INF_CSRFGUARD_PROPERTIES);
-	                }
+	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent("META-INF/csrfguard.js", true);
 	            } else if (this.javascriptSourceFile.startsWith("META-INF/")) {
 	                this.javascriptTemplateCode = CsrfGuardUtils.readResourceFileContent(this.javascriptSourceFile, true);
 	            } else {

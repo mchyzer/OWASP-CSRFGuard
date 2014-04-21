@@ -314,7 +314,7 @@ public final class CsrfGuard {
 				rotateTokens(request);
 			}
 			/** expected token in session - bad state **/
-		} else if (tokenFromSession == null) {
+		} else if (tokenFromSession == null && !valid) {
 			throw new IllegalStateException("CsrfGuard expects the token to exist in session at this point");
 		} else {
 			/** unprotected page - nothing to do **/
