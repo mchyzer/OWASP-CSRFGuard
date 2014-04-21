@@ -300,27 +300,42 @@ public final class CsrfGuard {
 				}
 				valid = true;
 			} catch (CsrfGuardException csrfe) {
-				for (IAction action : getActions()) {
-					try {
-						action.execute(request, response, csrfe, this);
-					} catch (CsrfGuardException exception) {
-						getLogger().log(LogLevel.Error, exception);
-					}
-				}
+				callActionsOnError(request, response, csrfe);
 			}
 
 			/** rotate session and page tokens **/
 			if (!isAjaxRequest(request) && isRotateEnabled()) {
 				rotateTokens(request);
 			}
-			/** expected token in session - bad state **/
+			/** expected token in session - bad state and not valid **/
 		} else if (tokenFromSession == null && !valid) {
-			throw new IllegalStateException("CsrfGuard expects the token to exist in session at this point");
+			try {
+				throw new CsrfGuardException("CsrfGuard expects the token to exist in session at this point");
+			} catch (CsrfGuardException csrfe) {
+				callActionsOnError(request, response, csrfe);
+				
+			}
 		} else {
 			/** unprotected page - nothing to do **/
 		}
 
 		return valid;
+	}
+
+	/**
+	 * @param request
+	 * @param response
+	 * @param csrfe
+	 */
+	private void callActionsOnError(HttpServletRequest request,
+			HttpServletResponse response, CsrfGuardException csrfe) {
+		for (IAction action : getActions()) {
+			try {
+				action.execute(request, response, csrfe, this);
+			} catch (CsrfGuardException exception) {
+				getLogger().log(LogLevel.Error, exception);
+			}
+		}
 	}
 
 	public void updateToken(HttpSession session) {
