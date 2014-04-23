@@ -221,6 +221,22 @@ public final class CsrfGuard {
 		return config().getJavascriptSourceFile();
 	}
 
+	/**
+	 * @see ConfigurationProvider#isJavascriptInjectFormAttributes()
+	 * @return if inject
+	 */
+	public boolean isJavascriptInjectFormAttributes() {
+		return config().isJavascriptInjectFormAttributes();
+	}
+
+	/**
+	 * @see ConfigurationProvider#isJavascriptInjectGetForms()
+	 * @return if inject
+	 */
+	public boolean isJavascriptInjectGetForms() {
+		return config().isJavascriptInjectGetForms();
+	}
+	
 	public boolean isJavascriptDomainStrict() {
 		return config().isJavascriptDomainStrict();
 	}

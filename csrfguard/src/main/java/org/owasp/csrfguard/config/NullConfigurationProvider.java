@@ -239,4 +239,18 @@ public final class NullConfigurationProvider implements ConfigurationProvider {
 		return false;
 	}
 
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectGetForms()
+	 */
+	public boolean isJavascriptInjectGetForms() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectFormAttributes()
+	 */
+	public boolean isJavascriptInjectFormAttributes() {
+		return false;
+	}
+
 }

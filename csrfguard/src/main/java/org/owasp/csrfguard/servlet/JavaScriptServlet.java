@@ -66,6 +66,10 @@ public final class JavaScriptServlet extends HttpServlet {
 	private static final String INJECT_INTO_XHR_IDENTIFIER = "%INJECT_XHR%";
 	
 	private static final String INJECT_INTO_FORMS_IDENTIFIER = "%INJECT_FORMS%";
+
+	private static final String INJECT_GET_FORMS_IDENTIFIER = "%INJECT_GET_FORMS%";
+	
+	private static final String INJECT_FORM_ATTRIBUTES_IDENTIFIER = "%INJECT_FORM_ATTRIBUTES%";
 	
 	private static final String INJECT_INTO_ATTRIBUTES_IDENTIFIER = "%INJECT_ATTRIBUTES%";
 	
@@ -231,6 +235,8 @@ public final class JavaScriptServlet extends HttpServlet {
 		code = code.replace(TOKEN_NAME_IDENTIFIER, csrfGuard.getTokenName());
 		code = code.replace(TOKEN_VALUE_IDENTIFIER, (String) session.getAttribute(csrfGuard.getSessionKey()));
 		code = code.replace(INJECT_INTO_FORMS_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectIntoForms()));
+		code = code.replace(INJECT_GET_FORMS_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectGetForms()));
+		code = code.replace(INJECT_FORM_ATTRIBUTES_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectFormAttributes()));
 		code = code.replace(INJECT_INTO_ATTRIBUTES_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectIntoAttributes()));
 		code = code.replace(INJECT_INTO_XHR_IDENTIFIER, String.valueOf(csrfGuard.isAjaxEnabled()));
 		code = code.replace(TOKENS_PER_PAGE_IDENTIFIER, String.valueOf(csrfGuard.isTokenPerPageEnabled()));

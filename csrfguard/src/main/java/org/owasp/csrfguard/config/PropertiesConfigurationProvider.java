@@ -250,6 +250,12 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 				this.javascriptInjectIntoAttributes = Boolean.valueOf(CsrfGuardUtils.getInitParameter(servletConfig, "inject-into-attributes",  
 						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.injectIntoAttributes"), "true"));
 
+				this.javascriptInjectGetForms = Boolean.valueOf(CsrfGuardUtils.getInitParameter(servletConfig, "inject-get-forms",  
+						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.injectGetForms"), "true"));
+
+				this.javascriptInjectFormAttributes = Boolean.valueOf(CsrfGuardUtils.getInitParameter(servletConfig, "inject-form-attributes",  
+						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.injectFormAttributes"), "true"));
+
 				this.javascriptInjectIntoForms = Boolean.valueOf(CsrfGuardUtils.getInitParameter(servletConfig, "inject-into-forms",  
 						propertyString(this.propertiesCache, "org.owasp.csrfguard.JavascriptServlet.injectIntoForms"), "true"));
 				
@@ -530,6 +536,32 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 	@Override
 	public boolean isEnabled() {
 		return this.enabled;
+	}
+	
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectGetForms()
+	 */
+	private boolean javascriptInjectGetForms;
+	
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectGetForms()
+	 */
+	public boolean isJavascriptInjectGetForms() {
+		this.javascriptInitParamsIfNeeded();
+		return this.javascriptInjectGetForms;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectFormAttributes()
+	 */
+	private boolean javascriptInjectFormAttributes;
+	
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectFormAttributes()
+	 */
+	public boolean isJavascriptInjectFormAttributes() {
+		this.javascriptInitParamsIfNeeded();
+		return this.javascriptInjectFormAttributes;
 	}
 
 }

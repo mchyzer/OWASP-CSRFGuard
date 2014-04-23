@@ -278,7 +278,16 @@
 	}
 
 	/** inject tokens as hidden fields into forms **/
-	function injectTokenForm(form, tokenName, tokenValue, pageTokens) {
+	function injectTokenForm(form, tokenName, tokenValue, pageTokens,injectGetForms) {
+	  
+		if (!injectGetForms) {
+			var method = form.getAttribute("method");
+	  
+			if ((typeof method != 'undefined') && method != null && method.toLowerCase() == "get") {
+				return;
+			}
+		}
+	  
 		var action = form.getAttribute("action");
 		
 		if(action != null && isValidUrl(action)) {
@@ -328,17 +337,25 @@
 		var all = document.all ? document.all : document.getElementsByTagName('*');
 		var len = all.length;
 
+		//these are read from the csrf guard config file(s)
+		var injectForms = %INJECT_FORMS%;
+		var injectGetForms = %INJECT_GET_FORMS%;
+		var injectFormAttributes = %INJECT_FORM_ATTRIBUTES%;
+		var injectAttributes = %INJECT_ATTRIBUTES%;
+		
 		for(var i=0; i<len; i++) {
 			var element = all[i];
 			
 			/** inject into form **/
 			if(element.tagName.toLowerCase() == "form") {
-				if(%INJECT_FORMS% == true) {
-					injectTokenForm(element, tokenName, tokenValue, pageTokens);
+				if(injectForms) {
+					injectTokenForm(element, tokenName, tokenValue, pageTokens,injectGetForms);
+				}
+				if (injectFormAttributes) {
 					injectTokenAttribute(element, "action", tokenName, tokenValue, pageTokens);
 				}
 				/** inject into attribute **/
-			} else if(%INJECT_ATTRIBUTES% == true) {
+			} else if(injectAttributes) {
 				injectTokenAttribute(element, "src", tokenName, tokenValue, pageTokens);
 				injectTokenAttribute(element, "href", tokenName, tokenValue, pageTokens);
 			}

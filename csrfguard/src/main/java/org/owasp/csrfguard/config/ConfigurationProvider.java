@@ -103,7 +103,21 @@ public interface ConfigurationProvider {
 	String getJavascriptCacheControl();
 
 	Pattern getJavascriptRefererPattern();
-
+	 
+ 	/**
+	 * if the token should be injected in GET forms (which will be on the URL)
+	 * if the HTTP method GET is unprotected, then this should likely be false
+ 	 * @return if inject
+ 	 */
+	boolean isJavascriptInjectGetForms();
+ 	
+	/**
+	 * if the token should be injected in the action in forms
+	 * note, if injectIntoForms is true, then this might not need to be true
+	 * @return if inject
+	 */
+	boolean isJavascriptInjectFormAttributes();
+	
 	boolean isJavascriptInjectIntoForms();
 
 	/**
