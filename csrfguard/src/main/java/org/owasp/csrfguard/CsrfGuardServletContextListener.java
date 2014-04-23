@@ -4,13 +4,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.util.Properties;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
+import org.owasp.csrfguard.config.overlay.ConfigurationOverlayProvider;
 import org.owasp.csrfguard.util.Streams;
 
 public class CsrfGuardServletContextListener implements ServletContextListener {
@@ -19,20 +19,61 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 
 	private final static String CONFIG_PRINT_PARAM = "Owasp.CsrfGuard.Config.Print";
 
+	/**
+	 * servlet context (will be the empty string if it is / )
+	 */
+	private static String servletContext = null;
+	
+	/**
+	 * servlet context (will be the empty string if it is / )
+	 * @return the servletContext
+	 */
+	public static String getServletContext() {
+		return servletContext;
+	}
+
+	/**
+	 * config file name if specified in the web.xml
+	 */
+	private static String configFileName = null;
+	
+	/**
+	 * config file name if specified in the web.xml
+	 * @return config file name
+	 */
+	public static String getConfigFileName() {
+		return configFileName;
+	}
+	
 	@Override
 	public void contextInitialized(ServletContextEvent event) {
 		ServletContext context = event.getServletContext();
-		String config = context.getInitParameter(CONFIG_PARAM);
+		servletContext = context.getContextPath();
+		//since this is just a prefix of a path, then if there is no servlet context, it is the empty string
+		if (servletContext == null || "/".equals(servletContext)) {
+			servletContext = "";
+		}
+		
+		configFileName = context.getInitParameter(CONFIG_PARAM);
 
-		if (config == null) {
-		  config = "Owasp.CsrfGuard.properties";
+		if (configFileName == null) {
+			configFileName = ConfigurationOverlayProvider.OWASP_CSRF_GUARD_PROPERTIES;
 		}
 
 		InputStream is = null;
 		Properties properties = new Properties();
 
 		try {
-			is = getResourceStream(config, context);
+			is = getResourceStream(configFileName, context, false);
+			
+			if (is == null) {
+				is = getResourceStream(ConfigurationOverlayProvider.META_INF_CSRFGUARD_PROPERTIES, context, false);
+			}
+
+			if (is == null) {
+				throw new RuntimeException("Cant find default owasp csrfguard properties file: " + configFileName);
+			}
+			
 			properties.load(is);
 			CsrfGuard.load(properties);
 		} catch (Exception e) {
@@ -42,6 +83,14 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		}
 
 
+		printConfigIfConfigured(context, "Printing properties before Javascript servlet, note, the javascript properties might not be initialized yet: ");
+	}
+
+	/**
+	 * @param context
+	 * @param prefix 
+	 */
+	public static void printConfigIfConfigured(ServletContext context, String prefix) {
 		String printConfig = context.getInitParameter(CONFIG_PRINT_PARAM);
 
 		if (printConfig == null || "".equals(printConfig.trim())) {
@@ -49,7 +98,8 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		}
 		
 		if (printConfig != null && Boolean.parseBoolean(printConfig)) {
-			context.log(CsrfGuard.getInstance().toString());
+			context.log(prefix 
+					+ CsrfGuard.getInstance().toString());
 		}
 	}
 
@@ -58,7 +108,7 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		/** nothing to do **/
 	}
 
-	private InputStream getResourceStream(String resourceName, ServletContext context) throws IOException {
+	private InputStream getResourceStream(String resourceName, ServletContext context, boolean failIfNotFound) throws IOException {
 		InputStream is = null;
 
 		/** try classpath **/
@@ -84,7 +134,7 @@ public class CsrfGuardServletContextListener implements ServletContextListener {
 		}
 
 		/** fail if still empty **/
-		if (is == null) {
+		if (is == null && failIfNotFound) {
 			throw new IOException(String.format("unable to locate resource - %s", resourceName));
 		}
 

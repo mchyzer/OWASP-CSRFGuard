@@ -53,12 +53,21 @@ public final class CsrfGuardFilter implements Filter {
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+
+		//maybe the short circuit to disable is set
+		if (!CsrfGuard.getInstance().isEnabled()) {
+			filterChain.doFilter(request, response);
+			return;
+		}
+		
 		/** only work with HttpServletRequest objects **/
 		if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
+			
 			HttpServletRequest httpRequest = (HttpServletRequest) request;
 			HttpSession session = httpRequest.getSession(false);
 			
-			if (session == null) {
+			//if there is no session and we arent validating when no session exists
+			if (session == null && !CsrfGuard.getInstance().isValidateWhenNoSessionExists()) {
 				// If there is no session, no harm can be done
 				filterChain.doFilter(httpRequest, (HttpServletResponse) response);
 				return;
@@ -73,7 +82,7 @@ public final class CsrfGuardFilter implements Filter {
 //				 httpRequest = new MultipartHttpServletRequest(httpRequest);
 //			 }
 
-			if (session.isNew() && csrfGuard.isUseNewTokenLandingPage()) {
+			if ((session != null && session.isNew()) && csrfGuard.isUseNewTokenLandingPage()) {
 				csrfGuard.writeLandingPage(httpRequest, httpResponse);
 			} else if (csrfGuard.isValidRequest(httpRequest, httpResponse)) {
 				filterChain.doFilter(httpRequest, httpResponse);

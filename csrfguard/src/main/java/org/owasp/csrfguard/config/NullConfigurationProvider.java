@@ -32,6 +32,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.owasp.csrfguard.action.IAction;
 import org.owasp.csrfguard.log.ConsoleLogger;
@@ -133,6 +134,108 @@ public final class NullConfigurationProvider implements ConfigurationProvider {
 	 */
 	@Override
 	public boolean isPrintConfig() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getJavascriptSourceFile()
+	 */
+	@Override
+	public String getJavascriptSourceFile() {
+		return null;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptDomainStrict()
+	 */
+	@Override
+	public boolean isJavascriptDomainStrict() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getJavascriptCacheControl()
+	 */
+	@Override
+	public String getJavascriptCacheControl() {
+		return null;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getJavascriptRefererPattern()
+	 */
+	@Override
+	public Pattern getJavascriptRefererPattern() {
+		return null;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectIntoForms()
+	 */
+	@Override
+	public boolean isJavascriptInjectIntoForms() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptInjectIntoAttributes()
+	 */
+	@Override
+	public boolean isJavascriptInjectIntoAttributes() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getJavascriptXrequestedWith()
+	 */
+	@Override
+	public String getJavascriptXrequestedWith() {
+		return null;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getJavascriptTemplateCode()
+	 */
+	@Override
+	public String getJavascriptTemplateCode() {
+		return null;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isCacheable()
+	 */
+	public boolean isCacheable() {
+		return true;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#getUnprotectedMethods()
+	 */
+	public Set<String> getUnprotectedMethods() {
+		return Collections.emptySet();
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isJavascriptRefererMatchDomain()
+	 */
+	@Override
+	public boolean isJavascriptRefererMatchDomain() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isEnabled()
+	 */
+	@Override
+	public boolean isEnabled() {
+		return false;
+	}
+
+	/**
+	 * @see org.owasp.csrfguard.config.ConfigurationProvider#isValidateWhenNoSessionExists()
+	 */
+	@Override
+	public boolean isValidateWhenNoSessionExists() {
 		return false;
 	}
 

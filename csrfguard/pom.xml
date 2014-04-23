@@ -138,6 +138,7 @@
           <include>csrfguard.js</include>
 					<include>csrfguard.tld</include>
 					<include>license.txt</include>
+          <include>csrfguard.properties</include>
 				</includes>
 				<targetPath>META-INF</targetPath>
 			</resource>
