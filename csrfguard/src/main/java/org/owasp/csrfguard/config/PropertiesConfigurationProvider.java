@@ -526,7 +526,7 @@ public final class PropertiesConfigurationProvider implements ConfigurationProvi
 		if (input == null || !input.contains("%")) {
 			return input;
 		}
-		input = input.replace("%servletContext%", CsrfGuardServletContextListener.getServletContext());
+		input = input.replace("%servletContext%", CsrfGuardUtils.defaultString(CsrfGuardServletContextListener.getServletContext()));
 		return input;
 	}
 

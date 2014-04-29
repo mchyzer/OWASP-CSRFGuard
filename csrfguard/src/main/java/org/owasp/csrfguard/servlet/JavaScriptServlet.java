@@ -232,19 +232,19 @@ public final class JavaScriptServlet extends HttpServlet {
 		/** build dynamic javascript **/
 		String code = CsrfGuard.getInstance().getJavascriptTemplateCode();
 
-		code = code.replace(TOKEN_NAME_IDENTIFIER, csrfGuard.getTokenName());
-		code = code.replace(TOKEN_VALUE_IDENTIFIER, (String) session.getAttribute(csrfGuard.getSessionKey()));
+		code = code.replace(TOKEN_NAME_IDENTIFIER, CsrfGuardUtils.defaultString(csrfGuard.getTokenName()));
+		code = code.replace(TOKEN_VALUE_IDENTIFIER, CsrfGuardUtils.defaultString((String) session.getAttribute(csrfGuard.getSessionKey())));
 		code = code.replace(INJECT_INTO_FORMS_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectIntoForms()));
 		code = code.replace(INJECT_GET_FORMS_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectGetForms()));
 		code = code.replace(INJECT_FORM_ATTRIBUTES_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectFormAttributes()));
 		code = code.replace(INJECT_INTO_ATTRIBUTES_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptInjectIntoAttributes()));
 		code = code.replace(INJECT_INTO_XHR_IDENTIFIER, String.valueOf(csrfGuard.isAjaxEnabled()));
 		code = code.replace(TOKENS_PER_PAGE_IDENTIFIER, String.valueOf(csrfGuard.isTokenPerPageEnabled()));
-		code = code.replace(DOMAIN_ORIGIN_IDENTIFIER, parseDomain(request.getRequestURL()));
+		code = code.replace(DOMAIN_ORIGIN_IDENTIFIER, CsrfGuardUtils.defaultString(parseDomain(request.getRequestURL())));
 		code = code.replace(DOMAIN_STRICT_IDENTIFIER, Boolean.toString(csrfGuard.isJavascriptDomainStrict()));
-		code = code.replace(CONTEXT_PATH_IDENTIFIER, request.getContextPath());
-		code = code.replace(SERVLET_PATH_IDENTIFIER, request.getContextPath() + request.getServletPath());
-		code = code.replace(X_REQUESTED_WITH_IDENTIFIER, csrfGuard.getJavascriptXrequestedWith());
+		code = code.replace(CONTEXT_PATH_IDENTIFIER, CsrfGuardUtils.defaultString(request.getContextPath()));
+		code = code.replace(SERVLET_PATH_IDENTIFIER, CsrfGuardUtils.defaultString(request.getContextPath() + request.getServletPath()));
+		code = code.replace(X_REQUESTED_WITH_IDENTIFIER, CsrfGuardUtils.defaultString(csrfGuard.getJavascriptXrequestedWith()));
 
 		/** write dynamic javascript **/
 		OutputStream output = null;

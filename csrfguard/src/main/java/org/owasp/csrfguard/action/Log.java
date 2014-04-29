@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.owasp.csrfguard.CsrfGuard;
 import org.owasp.csrfguard.CsrfGuardException;
 import org.owasp.csrfguard.log.LogLevel;
+import org.owasp.csrfguard.util.CsrfGuardUtils;
 
 public final class Log extends AbstractAction {
 
@@ -48,18 +49,18 @@ public final class Log extends AbstractAction {
 		logMessage = logMessage.replace("%exception_message%", csrfe.getLocalizedMessage());
 
 		/** Remote Network Information **/
-		logMessage = logMessage.replace("%remote_ip%", request.getRemoteAddr());
-		logMessage = logMessage.replace("%remote_host%", request.getRemoteHost());
+		logMessage = logMessage.replace("%remote_ip%", CsrfGuardUtils.defaultString(request.getRemoteAddr()));
+		logMessage = logMessage.replace("%remote_host%", CsrfGuardUtils.defaultString(request.getRemoteHost()));
 		logMessage = logMessage.replace("%remote_port%", String.valueOf(request.getRemotePort()));
 
 		/** Local Network Information **/
-		logMessage = logMessage.replace("%local_ip%", request.getLocalAddr());
-		logMessage = logMessage.replace("%local_host%", request.getLocalName());
+		logMessage = logMessage.replace("%local_ip%", CsrfGuardUtils.defaultString(request.getLocalAddr()));
+		logMessage = logMessage.replace("%local_host%", CsrfGuardUtils.defaultString(request.getLocalName()));
 		logMessage = logMessage.replace("%local_port%", String.valueOf(request.getLocalPort()));
 
 		/** Requested Resource Information **/
-		logMessage = logMessage.replace("%request_method%", request.getMethod());
-		logMessage = logMessage.replace("%request_uri%", request.getRequestURI());
+		logMessage = logMessage.replace("%request_method%", CsrfGuardUtils.defaultString(request.getMethod()));
+		logMessage = logMessage.replace("%request_uri%", CsrfGuardUtils.defaultString(request.getRequestURI()));
 		logMessage = logMessage.replace("%request_url%", request.getRequestURL().toString());
 
 		// JavaEE Principal Information
@@ -73,7 +74,7 @@ public final class Log extends AbstractAction {
 			}
 		}
 		if (user != null && !"".equals(user.trim())) {
-			logMessage = logMessage.replace("%user%", request.getRemoteUser());
+			logMessage = logMessage.replace("%user%", user);
 		} else {
 			logMessage = logMessage.replace("%user%", "<anonymous>");
 		}

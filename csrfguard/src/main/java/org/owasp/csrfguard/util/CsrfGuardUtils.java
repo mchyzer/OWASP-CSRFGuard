@@ -1387,4 +1387,23 @@ public class CsrfGuardUtils {
 	 */
 	public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
+	/**
+	   * <p>Returns either the passed in String,
+	   * or if the String is <code>null</code>, an empty String ("").</p>
+	   *
+	   * <pre>
+	   * StringUtils.defaultString(null)  = ""
+	   * StringUtils.defaultString("")    = ""
+	   * StringUtils.defaultString("bat") = "bat"
+	   * </pre>
+	   *
+	   * @see String#valueOf(Object)
+	   * @param str  the String to check, may be null
+	   * @return the passed in String, or the empty String if it
+	   *  was <code>null</code>
+	   */
+	  public static String defaultString(String str) {
+	    return str == null ? "" : str;
+	  }
+
 }
