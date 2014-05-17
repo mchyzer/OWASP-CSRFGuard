@@ -538,10 +538,6 @@ public final class CsrfGuard {
 		HttpSession session = request.getSession(true);
 		String tokenFromSession = (String) session.getAttribute(getSessionKey());
 		String tokenFromRequest = request.getHeader(getTokenName());
-		if (tokenFromRequest == null) {
-			//try from param, why not
-			tokenFromRequest = request.getParameter(getTokenName());
-		}
 
 		if (tokenFromRequest == null) {
 			/** FAIL: token is missing from the request **/
