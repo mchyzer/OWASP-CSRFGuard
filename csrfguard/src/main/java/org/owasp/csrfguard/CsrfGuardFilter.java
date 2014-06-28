@@ -44,6 +44,19 @@ import org.owasp.csrfguard.http.InterceptRedirectResponse;
 
 public final class CsrfGuardFilter implements Filter {
 
+	/**
+	 * store the request object as a threadlocal
+	 */
+	private static InheritableThreadLocal<HttpServletRequest> requestThreadLocal = new InheritableThreadLocal<HttpServletRequest>();
+	
+	/**
+	 * get the http servlet request from threadlocal
+	 * @return the request
+	 */
+	public static HttpServletRequest httpServletRequest() {
+		return requestThreadLocal.get();
+	}
+	
 	private FilterConfig filterConfig = null;
 
 	@Override
@@ -54,49 +67,62 @@ public final class CsrfGuardFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
 
-		//maybe the short circuit to disable is set
-		if (!CsrfGuard.getInstance().isEnabled()) {
-			filterChain.doFilter(request, response);
-			return;
-		}
-		
-		/** only work with HttpServletRequest objects **/
-		if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
-			
-			HttpServletRequest httpRequest = (HttpServletRequest) request;
-			HttpSession session = httpRequest.getSession(false);
-			
-			//if there is no session and we arent validating when no session exists
-			if (session == null && !CsrfGuard.getInstance().isValidateWhenNoSessionExists()) {
-				// If there is no session, no harm can be done
-				filterChain.doFilter(httpRequest, (HttpServletResponse) response);
+		try {
+
+			if (request instanceof HttpServletRequest) {
+				
+				requestThreadLocal.set((HttpServletRequest)request);
+				
+			}
+
+			//maybe the short circuit to disable is set
+			if (!CsrfGuard.getInstance().isEnabled()) {
+				filterChain.doFilter(request, response);
 				return;
 			}
-
-			CsrfGuard csrfGuard = CsrfGuard.getInstance();
-			csrfGuard.getLogger().log(String.format("CsrfGuard analyzing request %s", httpRequest.getRequestURI()));
-
-			InterceptRedirectResponse httpResponse = new InterceptRedirectResponse((HttpServletResponse) response, httpRequest, csrfGuard);
-
-//			 if(MultipartHttpServletRequest.isMultipartRequest(httpRequest)) {
-//				 httpRequest = new MultipartHttpServletRequest(httpRequest);
-//			 }
-
-			if ((session != null && session.isNew()) && csrfGuard.isUseNewTokenLandingPage()) {
-				csrfGuard.writeLandingPage(httpRequest, httpResponse);
-			} else if (csrfGuard.isValidRequest(httpRequest, httpResponse)) {
-				filterChain.doFilter(httpRequest, httpResponse);
+			
+			/** only work with HttpServletRequest objects **/
+			if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
+				
+				HttpServletRequest httpRequest = (HttpServletRequest) request;
+				
+				HttpSession session = httpRequest.getSession(false);
+				
+				//if there is no session and we arent validating when no session exists
+				if (session == null && !CsrfGuard.getInstance().isValidateWhenNoSessionExists()) {
+					// If there is no session, no harm can be done
+					filterChain.doFilter(httpRequest, (HttpServletResponse) response);
+					return;
+				}
+	
+				CsrfGuard csrfGuard = CsrfGuard.getInstance();
+				csrfGuard.getLogger().log(String.format("CsrfGuard analyzing request %s", httpRequest.getRequestURI()));
+	
+				InterceptRedirectResponse httpResponse = new InterceptRedirectResponse((HttpServletResponse) response, httpRequest, csrfGuard);
+	
+	//			 if(MultipartHttpServletRequest.isMultipartRequest(httpRequest)) {
+	//				 httpRequest = new MultipartHttpServletRequest(httpRequest);
+	//			 }
+	
+				if ((session != null && session.isNew()) && csrfGuard.isUseNewTokenLandingPage()) {
+					csrfGuard.writeLandingPage(httpRequest, httpResponse);
+				} else if (csrfGuard.isValidRequest(httpRequest, httpResponse)) {
+					filterChain.doFilter(httpRequest, httpResponse);
+				} else {
+					/** invalid request - nothing to do - actions already executed **/
+				}
+	
+				/** update tokens **/
+				csrfGuard.updateTokens(httpRequest);
+	
 			} else {
-				/** invalid request - nothing to do - actions already executed **/
+				filterConfig.getServletContext().log(String.format("[WARNING] CsrfGuard does not know how to work with requests of class %s ", request.getClass().getName()));
+	
+				filterChain.doFilter(request, response);
 			}
-
-			/** update tokens **/
-			csrfGuard.updateTokens(httpRequest);
-
-		} else {
-			filterConfig.getServletContext().log(String.format("[WARNING] CsrfGuard does not know how to work with requests of class %s ", request.getClass().getName()));
-
-			filterChain.doFilter(request, response);
+		} finally {
+			//remove the threadlocal
+			requestThreadLocal.remove();
 		}
 	}
 

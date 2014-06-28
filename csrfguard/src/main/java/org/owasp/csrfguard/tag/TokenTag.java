@@ -30,27 +30,36 @@ package org.owasp.csrfguard.tag;
 
 import java.io.*;
 
-import javax.servlet.http.*;
-
 import org.owasp.csrfguard.*;
 
 public final class TokenTag extends AbstractUriTag {
 
 	private final static long serialVersionUID = 0x12164baa;
 
-	@Override
-	public int doStartTag() {
+	/**
+	 * get a token name value pair separated by = (could be for a uri)
+	 * @param uri
+	 * @return the name value pair 
+	 */
+	public static String token(String uri) {
+	  
 		CsrfGuard csrfGuard = CsrfGuard.getInstance();
 		String tokenName = csrfGuard.getTokenName();
 
-		if (csrfGuard.isTokenPerPageEnabled() && getUri() == null) {
-			throw new IllegalStateException("must define 'uri' attribute when token per page is enabled");
-		}
+		String tokenValue = TokenValueTag.tokenValue(uri);
 
-		String tokenValue = csrfGuard.getTokenValue((HttpServletRequest) pageContext.getRequest(), getUri());
+		return tokenName + "=" + tokenValue;
 
+	}
+
+	@Override
+	public int doStartTag() {
+
+		String token = token(this.getUri());
+
+		String tokenNameValuePair = token(this.getUri());
 		try {
-			pageContext.getOut().write(tokenName + "=" + tokenValue);
+			pageContext.getOut().write(tokenNameValuePair);
 		} catch (IOException e) {
 			pageContext.getServletContext().log(e.getLocalizedMessage(), e);
 		}

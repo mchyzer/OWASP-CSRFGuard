@@ -28,48 +28,68 @@
  */
 package org.owasp.csrfguard.tag;
 
-import java.io.*;
+import org.owasp.csrfguard.CsrfGuard;
 
-import javax.servlet.http.*;
+/**
+ * expression language functions for JSP
+ * @author mchyzer
+ */
+public class CsrfFunctions {
 
-import org.owasp.csrfguard.*;
-
-public final class TokenValueTag extends AbstractUriTag {
-
-	private final static long serialVersionUID = 0xaaca46d3;
-
-	
 	/**
-	 * get a token value (could be for a uri)
+	 * 
+	 */
+	public CsrfFunctions() {
+	}
+
+	/**
+	 * Print out a token name=value for use in params of a URL. Note, this is
+	 * for token per session. For token per page use tokenForUri
+	 * 
+	 * @return print out token
+	 */
+	public static String token() {
+		return TokenTag.token(null);
+	}
+
+	/**
+	 * Print out a token name=value for use in params of a URL. Note, this is
+	 * for token per page. For token per session use token
+	 * @param uri is the uri this token is for
+	 * @return token for uri
+	 */
+	public static String tokenForUri(String uri) {
+		return TokenTag.token(uri);
+	}
+
+	/**
+	 * print out a token name
+	 * 
+	 * @return token name
+	 */
+	public static String tokenName() {
+		return CsrfGuard.getInstance().getTokenName();
+	}
+
+	/**
+	 * Print out a token value for use in params of a URL. Note, this is for
+	 * token per session. For token per page use tokenValueForUri
+	 * 
+	 * @return token value
+	 */
+	public static String tokenValue() {
+		return TokenValueTag.tokenValue(null);
+	}
+
+	/**
+	 * Print out a token value for use in params of a URL. Note, this is for
+	 * token per page. For token per session use tokenValue
+	 * 
 	 * @param uri
 	 * @return the token value
 	 */
-	public static String tokenValue(String uri) {
-		CsrfGuard csrfGuard = CsrfGuard.getInstance();
-
-		if (csrfGuard.isTokenPerPageEnabled() && (uri == null || "".equals(uri.trim()))) {
-			throw new IllegalStateException("must define 'uri' attribute when token per page is enabled");
-		}
-
-		HttpServletRequest httpServletRequest = CsrfGuardFilter.httpServletRequest();
-		String tokenValue = csrfGuard.getTokenValue(httpServletRequest, uri);
-
-		return tokenValue;
-
+	public static String tokenValueForUri(String uri) {
+		return TokenValueTag.tokenValue(uri);
 	}
 
-	@Override
-	public int doStartTag() {
-
-		String tokenValue = tokenValue(this.getUri());
-
-		try {
-			pageContext.getOut().write(tokenValue);
-		} catch (IOException e) {
-			pageContext.getServletContext().log(e.getLocalizedMessage(), e);
-		}
-
-		return SKIP_BODY;
-	}
-	
 }
